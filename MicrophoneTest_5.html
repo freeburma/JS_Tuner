@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta http-equiv="X-UA-Compatible" content="IE=edge">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Web Dectaphone</title>
+
+	<!-- https://cdnjs.com/libraries/tone -->
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.38/Tone.js"></script>
+
+	<!-- 
+		Tested and working 
+		Ref: https://developer.mozilla.org/en-US/docs/web/api/mediastream_recording_api/using_the_mediastream_recording_api 
+	-->
+	<style>
+		* 
+		{
+			margin: 0;
+			padding: 0;
+			box-sizing: border-box;
+		}
+
+		html, body
+		{
+			height: 100%;
+		}
+
+		body 
+		{
+			font-family: Arial, Helvetica, sans-serif;
+			font-size: 1rem;
+		}
+
+
+		.wrapper 
+		{
+			height: 100%;
+			display: flex;
+			flex-direction: column;
+		}
+
+		h1, h2 
+		{
+			font-size: 2rem;
+			text-align: center;
+			font-weight: normal;
+
+			padding: 0.5rem 0 0 0;
+		}
+
+		.main-controls 
+		{
+			padding: 0.5rem 0;
+		}
+
+		canvas 
+		{
+			display: block;
+			margin-bottom: 0.5rem;
+		}
+
+		#buttons 
+		{
+			display: flex;
+			flex-direction: row;
+			justify-content: space-between;
+
+		}
+
+		#buttons button 
+		{
+			font-size: 1rem;
+			padding: 1rem;
+			width: calc(50% - 0.25rem);
+		}
+
+		button
+		{
+			font-size: 1rem;
+			background: #0088cc;
+			text-align: center;
+			color: white; 
+			border: none;
+
+			transition: all 0.2s;
+			padding: 0.5rem;
+		}
+
+		button:hover, button:focus
+		{
+			box-shadow: inset 0px 0px 10px rgba(255, 255, 255, 1);
+			background: #0ae;
+		}
+
+		button:active
+		{
+			box-shadow: inset 0px 0px 20px rgba(0, 0, 0, 0.5);
+			transform: translateY(2px);
+		}
+
+
+		/* 
+			* Make the clips use as much space as possible, and
+			* also show a scrollbar when there are too many clips to show
+			* in the available space 
+		*/
+		.sound-clips 
+		{
+			flex: 1;
+			overflow: auto;
+		}
+
+		section, article
+		{
+			display: block;
+		}
+
+		aside p {
+		font-size: 1.2rem;
+		margin: 0.5rem 0;
+		}
+
+		aside a {
+		color: #666;
+		}
+
+		/* Toggled State of information box */
+		input[type=checkbox]:checked ~ aside {
+		transform: translateX(0);
+		}
+
+		/* Cursor when clip name is clicked over */
+
+		.clip p {
+		cursor: pointer;
+		}
+
+		/* Adjustments for wider screens */
+		@media all and (min-width: 800px) 
+		{
+			/* Don't take all the space as readability is lost when line length
+				goes past a certain size */
+			.wrapper {
+				width: 90%;
+				max-width: 1000px;
+				margin: 0 auto;
+			}
+		}
+
+	</style>
+</head>
+<body>
+	<div class="wrapper">
+		<header>	
+			<h1>Web Dicataphone</h1>
+		</header>
+
+		<section class="main-controls">
+			<canvas class="visualizer" height="60px"></canvas>
+
+			<div id="buttons">
+				<button class="record">Record</button>
+				<button class="stop">Stop</button>
+			</div>
+		</section>
+
+
+
+		<section class="sound-clips"></section>
+	</div>
+
+
+	<script>// set up basic variables for app
+
+		const record = document.querySelector('.record');
+		const stop = document.querySelector('.stop');
+		const soundClips = document.querySelector('.sound-clips');
+		const canvas = document.querySelector('.visualizer');
+		const mainSection = document.querySelector('.main-controls');
+
+		let chunks = []; 
+		let audioCtx = new AudioContext(); 
+		const canvasCtx = canvas.getContext("2d");
+
+
+		
+		// disable stop button while not recording
+		stop.disabled = true;
+
+		if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia)
+		{
+			console.log('[+] getUseMedia supported');
+
+			//// Constraints - only audio need for this app
+			navigator.mediaDevices.getUserMedia(
+			{
+				audio: true
+			})
+			//// Success callback 
+			.then(function(stream)
+			{
+
+				
+				//// Capturing the media stream 
+				const mediaRecorder = new MediaRecorder(stream); 
+
+				visualize(stream); 
+
+
+				//// Record button 
+				record.onclick = function() 
+				{
+					mediaRecorder.start(); 
+					
+					record.style.background = "#f00"; 
+					record.style.color = "#000"; 
+
+					console.log('[mediaRecorder.state] : ' + mediaRecorder.state); // Status
+
+					stop.disabled = false; 
+
+
+					
+
+					// setInterval(() => 
+					// {
+					
+					// 	console.log('[audioBit] : ' + mediaRecorder.audioBitsPerSecond);
+
+					// }, 100); 
+
+				}// end record.onclick()
+
+				//// Stop button 
+				stop.onclick = function()
+				{
+					console.log(`[-] Recorder Stopped"`);
+
+					const clipName = prompt('Enter a name for your sound clip'); 
+
+					//// Creating a dynamic elements 
+					const clipContainer = document.createElement('article'); 
+					const clipLabel = document.createElement('p'); 
+					const audio = document.createElement('audio'); 
+					const deleteButton = document.createElement('button'); 
+
+					//// Initializing the dynamic elements
+					clipContainer.classList.add('clip'); 
+					audio.setAttribute('controls', ''); 
+					deleteButton.innerHTML = "Delete"; 
+					clipLabel.innerHTML = clipName; 
+
+					clipContainer.appendChild(audio); 
+					clipContainer.appendChild(clipLabel); 
+					clipContainer.appendChild(deleteButton); 
+
+					soundClips.appendChild(clipContainer); 
+
+					//// Getting blob 
+					const blob = new Blob(chunks, { 'type' : 'audio/ogg; codecs=opus'}); 
+					chunks = []; 
+
+					const audioURL = window.URL.createObjectURL(blob); 
+					audio.src = audioURL; 
+
+
+
+					mediaRecorder.stop(); 
+
+					record.style.background = "#0088cc"; 
+					stop.disabled = true; 
+					console.log('[mediaRecorder.state] : ' + mediaRecorder.state); // Status
+
+					//// *** delete button must be inside due to the dynamic element. 
+					deleteButton.onclick = function(e)
+					{
+						let evtTgt = e.target; 
+
+						evtTgt.parentNode.parentNode.removeChild(evtTgt.parentNode); 
+					}// end deleteButton.onclick()
+
+
+				}// end record.onclick()
+
+			
+				mediaRecorder.ondataavailable = function(e)
+				{
+					chunks.push(e.data); 
+
+					// if (e.data != null)
+					// {
+					// 	console.log('[Data] : ');
+					// }
+
+					
+					// console.log(e.data);
+				}// end mediaRecorder.ondataavailable()
+
+
+			})
+			//// error callback 
+			.catch(function(err)
+			{
+				console.log('[-] getUserMedia error: ' + err);
+			})
+
+
+
+			
+		}
+		else 
+		{
+			console.log('[-] Your browser does not support getUseMedia. -) ');
+
+		}// end if 
+
+		
+		function visualize(stream) 
+		{
+			if ( ! audioCtx ) 
+			{
+				audioCtx = new AudioContext();
+			}// end if 
+
+			const source = audioCtx.createMediaStreamSource(stream);
+
+			const analyser = audioCtx.createAnalyser();
+			analyser.fftSize = 2048;
+			const bufferLength = analyser.frequencyBinCount;
+			const dataArray = new Uint8Array(bufferLength);
+
+			source.connect(analyser);
+			// analyser.connect(audioCtx.destination);
+
+			
+			draw()
+
+			//// Drawing the voice with draw 
+			function draw() 
+			{
+				console.log();
+
+
+				let myDate = new Date(); 
+
+				const WIDTH = canvas.width
+				const HEIGHT = canvas.height;
+
+				requestAnimationFrame(draw);
+
+				var getByteTimeDomainData = analyser.getByteTimeDomainData(dataArray);
+				// console.log(getByteTimeDomainData);
+
+				// myDate = myDate.getHours() + ":" + myDate.getMinutes() + ":" + myDate.getSeconds() + "\n"; 
+				// console.log(myDate + dataArray);
+
+				canvasCtx.fillStyle = 'rgb(200, 200, 200)';
+				canvasCtx.fillRect(0, 0, WIDTH, HEIGHT);
+
+				canvasCtx.lineWidth = 2;
+				canvasCtx.strokeStyle = 'rgb(0, 0, 0)';
+
+				canvasCtx.beginPath();
+
+				let sliceWidth = WIDTH * 1.0 / bufferLength;
+				let x = 0;
+
+
+				for (let i = 0; i < bufferLength; i++) 
+				{
+
+					let v = dataArray[i] / 128.0;
+					let y = v * HEIGHT / 2;
+
+					if (i === 0) {
+						canvasCtx.moveTo(x, y);
+					} else {
+						canvasCtx.lineTo(x, y);
+					}
+
+					x += sliceWidth;
+				}// end for 
+
+				canvasCtx.lineTo(canvas.width, canvas.height / 2);
+				canvasCtx.stroke();
+
+			}// end draw()
+		}// end visualize(stream)
+
+		
+
+		
+	</script>
+	
+</body>
+</html>

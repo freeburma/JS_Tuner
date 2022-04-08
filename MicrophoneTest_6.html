@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8">
+    <title>Frequency Finder</title>
+  </head>
+  <body>
+    <h1>Tuner</h1>
+
+    <div><label for="devices">Device:</label> <select id="devices"></select></div>
+
+    <div>Pitch: <span id="pitch"></span></div>
+    <div>Frequency: <span id="frequency"></span></div>
+
+    <div><button id="record" disabled>Record</button></div>
+  </body>
+
+  <script>
+    require('./renderer.js')
+  </script>
+</html>

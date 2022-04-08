@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+	<meta charset="UTF-8">
+	<meta http-equiv="X-UA-Compatible" content="IE=edge">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Audio/Mic Test</title>
+
+	<!-- Ref: 
+      https://web.dev/media-recording-audio/    -->
+	<!-- 
+        Tested: on 02-Apr-2022 11:31 am 
+        Note: 
+        Can access to microphone and can record the voice and able to download it. 
+    -->
+	<style>
+		canvas {
+			display: block;
+			margin-bottom: 0.5rem;
+			}
+
+		
+	</style>
+</head>
+
+<body>
+	<select name="" id="micSelect">
+		<!-- <option value="">Select ... </option> -->
+	</select>
+
+	<canvas class="visualizer" height="60px"></canvas>
+
+	<div class="audio-controls">
+		<button id="record">Record</button>
+		<button id="stop">Stop</button>
+		<audio id="audio" controls></audio>
+	</div>
+
+	<script>
+		(async () => 
+		{
+
+			let AudioContext = window.AudioContext || window.webkitAudioContext;
+			let context = null; 
+		
+
+			let stream = null; 
+			let sampleRate = null;
+			let volume = null;
+
+			
+			let audioInput = null;
+			let analyser = null;
+			let recording = false; 
+			let recordingLength = 0;
+			let tested = false;
+
+			let leftchannel = [];
+			let rightchannel = [];
+
+
+
+
+			try 
+			{
+				window.stream = stream = await getStream();
+				console.log('Got stream');
+			} 
+			catch (err) 
+			{
+				alert('Issue getting mic', err);
+			}
+
+			let micSelect = document.querySelector('#micSelect'); 
+			const deviceInfos = await navigator.mediaDevices.enumerateDevices(); 
+			var mics = []; 
+
+			for(let i = 0; i !== deviceInfos.length; ++i)
+			{
+				let deviceInfo = deviceInfos[i]; 
+
+				if (deviceInfo.kind === 'audioinput')
+				{
+					mics.push(deviceInfo); 
+
+					let label = deviceInfo.label || 'Microphone ' + mics.length; 
+
+					/// Appending the device to the "dropdown select"
+					const option = document.createElement('option'); 
+					option.value = deviceInfo.deviceId; 
+					option.text  = label; 
+
+					micSelect.appendChild(option); 
+
+					console.log('Mic ', label + ' ' + deviceInfo.deviceId); 
+				}// end if
+			}// end foreach 
+
+			
+			function getStream(constraints) 
+			{
+				if (!constraints) 
+				{
+					constraints = { audio: true, video: false };
+				}
+				
+				return navigator.mediaDevices.getUserMedia(constraints);
+			}// end getStream()
+
+			// getAudioFromSelectedMic(); 
+
+			function getAudioFromSelectedMic()
+			{
+				context = new AudioContext();
+				sampleRate = context.sampleRate; 
+
+				// creates a gain node
+				volume = context.createGain(); 
+
+				// creates an audio node from teh microphone incoming stream
+				audioInput = context.createMediaStreamSource(stream);
+
+				// Create analyser
+				analyser = context.createAnalyser();
+
+				let bufferSize = 2048; 
+				analyser.fftSize = bufferSize; 
+
+				const bufferLength = analyser.frequencyBinCount;
+				const dataArray = new Uint8Array(bufferLength);
+
+
+				// let recorder = context.createScriptProcessor(bufferSize, 2, 2); 
+				let recorder = context.createMediaStreamSource(stream); 
+
+				// analyser.connect(recorder); 
+
+				 // finally connect the processor to the output
+				recorder.connect(context.destination); 
+
+
+				recorder.onaudioprocess = function(e)
+				{
+					if ( ! recording ) return; 
+
+
+					
+
+					let left = e.inputBuffer.getChannelData(0); 
+					let right = e.inputBuffer.getChannelData(1); 
+
+					// if ( ! tested )
+					// {
+					// 	tested = true; 
+
+					// 	// if this reduces to 0 we are not getting any sound
+					// 	if (!left.reduce((a, b) => a + b)) 
+					// 	{
+					// 		alert("There seems to be an issue with your Mic");
+
+					// 		// clean up;
+					// 		stop();
+
+					// 		stream.getTracks().forEach(function (track) 
+					// 		{
+					// 			track.stop();
+					// 		});
+
+					// 		context.close();
+					// 	}// end if 
+
+					// }// end if 
+
+					// we clone the samples
+					leftchannel.push(new Float32Array(left));
+					rightchannel.push(new Float32Array(right));
+
+					// TODO: Do something with the data, i.e Convert this to WAV
+					console.log('[+] Recording', left, + ' ', right);
+					// console.log('[+] Recording', leftchannel, + ' ', rightchannel);
+
+					recordingLength += bufferSize;
+
+				
+				}// end recorder.onaudioprocess
+
+
+				
+
+			}// end getAudioFromSelectedMic()
+
+			function start() 
+			{
+				recording = true;
+
+				// reset the buffers for the new recording
+				leftchannel.length = rightchannel.length = 0;
+
+				recordingLength = 0;
+
+				console.log('context: ', !!context);
+				if (!context) getAudioFromSelectedMic();
+			}
+
+			function stop()
+			{
+				console.log('Stop')
+				recording = false;
+			}// end stop()
+
+			function pause() 
+			{
+				recording = false;
+				context.suspend()
+			}
+
+			function resume() {
+				recording = true;
+				context.resume();
+			}
+
+
+			micSelect.onchange = async e => 
+			{
+				console.log('now use device ', micSelect.value);
+
+				stream.getTracks().forEach(function(track) 
+				{
+					track.stop();
+				});
+
+				context.close();
+
+				stream = await getStream({
+					audio: {
+                                deviceId: { exact: micSelect.value }
+                            }, video: false
+				}); 
+
+				
+
+				// console.log('Start recording')
+				// start();
+				
+			}// micSelect.onchange()
+
+			document.querySelector('#record').onclick = (e) => {
+				console.log('Start recording')
+				start();
+			}
+
+			document.querySelector('#stop').onclick = (e) => {
+				stop();
+			}
+
+
+
+		
+
+	
+		
+		})()// end async ()
+
+		
+
+	</script>
+</body>
+
+</html>
