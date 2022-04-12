@@ -3,12 +3,25 @@ var sass = require('gulp-sass') (require('sass'));
 var browserSync = require('browser-sync').create();
 var reload      = browserSync.reload;
 
-//// Compiling SCSS filesl 
+//// TypeScript compilation 
+let ts = require('gulp-typescript'); 
+let tsProject = ts.createProject("tsconfig.json"); 
+
+//// Compiling SCSS files
 gulp.task('sass', function()
 {
     return gulp.src('./*.scss')
                 .pipe(sass())
-                .pipe(gulp.dest('./')); 
+                .pipe(gulp.dest('./'))
+                ; 
+}); 
+
+gulp.task('Compile_TypeScript', function()
+{
+    return tsProject.src()
+        .pipe(tsProject()).js
+        .pipe(gulp.dest('./')); 
+               
 }); 
 
 // Save a reference to the `reload` method
@@ -27,4 +40,5 @@ gulp.task("default", function(done)
     gulp.watch("*.html").on("change", reload);
     gulp.watch("*.css").on("change", reload);
     gulp.watch("*.js").on("change", reload);
+    gulp.watch("*.ts", gulp.series(['Compile_TypeScript'])).on("change", reload);
 });
