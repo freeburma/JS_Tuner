@@ -69,7 +69,8 @@
   border-top-left-radius: 10px;
   border-top-right-radius: 10px;
   transform-origin: bottom center;
-  animation: MoveDial_90CW 6s linear infinite;
+  transform: rotate(-90deg);
+  transition-delay: 0.1s;
 }
 
 .Tune {

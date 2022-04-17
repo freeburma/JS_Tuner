@@ -2,7 +2,12 @@
 console.log('JS Loaded ...');
 window.AudioContext = window.AudioContext || window.webkitAudioContext; 
 
-/// Declaring Variables 
+/// Declaring Variables for UI
+let dial, noteValue = null; 
+let lastNoteValue = null; 
+
+
+/// Declaring Variables for Audio Context 
 
 let audioContext = null; 
 let isPlaying = false; 
@@ -22,36 +27,34 @@ let detectorElem,
     detuneElem, 
     detuneAmount; 
 
+let compressor, filter = null; 
+
 
 let rafID = null; 
 let tracks = null; 
 let buflen = 2048; 
 let buf = new Float32Array(buflen);  
 
-let noteStrings = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"]; 
+// \u266f: Unicode Char for Sharp sign 
+// \u266D: Unicode Char for Flat sign
+
+let noteStrings = ["C", "C\u266f", "D", "E\u266D", "E", "F", "F\u266f", "G", "G\u266f", "A", "B\u266D", "B"]; 
 
 window.onload = function() 
 {
     audioContext = new AudioContext(); 
+    dial = document.querySelector('.dial'); 
+    noteValue = document.querySelector('.NoteValue'); 
 
     //// Creating Audio Context 
-    MAX_SIZE = Math.max(4, Math.floor(audioContext.sampleRate / 5000)); // Corresponds to a 5kHZ signal
+    // MAX_SIZE = Math.max(4, Math.floor(audioContext.sampleRate / 5000)); // Corresponds to a 5kHZ signal
 
-    LiveInput(); 
+    MicInput(); // Initializing the 
 
-    // setInterval(() => 
-    // {
-    //  LiveInput(); 
-
-    //     // console.log('test');
-    // }, 1000); 
 };// end window.onload()
 
 
-// LiveInput();
-  
-
-function LiveInput()
+function MicInput()
 {
    
    
@@ -106,13 +109,29 @@ function getUserMedia(dictionary, callback)
 
 function goStream(stream) 
 {
+   
+
+    filter = audioContext.createBiquadFilter();
+    filter.Q.value = 8.30;
+    filter.frequency.value = 440;
+    filter.gain.value = 3.0;
+    filter.type = filter.LOWPASS;
+    filter.frequency.value = 0;
+
+    // filter.connect(compressor);
+
     //// Create an AudioNode from the stream 
     mediaStreamSource = audioContext.createMediaStreamSource(stream); 
 
     //// Connect it to the destination 
     analyser = audioContext.createAnalyser(); 
     analyser.fftSize = 2048; 
+
+    // analyser.connect(filter); // For noise cancellation
+    // filter.connect(analyser); 
     mediaStreamSource.connect(analyser); 
+    // analyser.connect(filter); 
+    // mediaStreamSource.connect(filter); 
 
     console.log(analyser);
 
@@ -120,6 +139,10 @@ function goStream(stream)
     updatePitch(); 
 
 }// end goStream()
+
+
+let isPause = false; 
+
 
 function updatePitch()
 {
@@ -130,44 +153,62 @@ function updatePitch()
     console.log("====================================================================");
 
 
-    let ac = autoCorrelate(buf, audioContext.sampleRate); 
+    let ac = autoCorrelate(buf, audioContext.sampleRate);
+    ac = ac.toFixed(2); 
 
     console.log("[ac]", ac);
 
     //// ac: is accuracy 
-    if (ac == -1) // Can't detect the tune
+    // if (ac != -1) // Can't detect the tune
+    if ( ac >= 123.47 && ac <= 3951.07) // Our tuner start to detect from C3 and C8 interval to reduce noise. 
     {
-        console.log('[-] Error: Can not detect the tune');
-    }
-    else 
-    {
+      
         let pitch = ac; 
 
         //// Getting the pitch 
-        console.log("[Pitch] : ", pitch);
+        // console.log("[Pitch] : ", pitch); 
 
         //// Getting node value 
         let note = noteFromPitch(pitch); // Getting note from "noteFromPitch()"
         let singleNoteValue = noteStrings[note % 12]; // Getting all 12 nodes from the array
 
-        console.log("[Note] : ", singleNoteValue);
+        //// Update only when we receive only new node value 
+        if (lastNoteValue !== singleNoteValue)
+        {
+            DisplayNote(singleNoteValue); 
+            lastNoteValue = singleNoteValue; 
+        }
+
+        // console.log("[Note] : ", singleNoteValue, " => ", lastNoteValue);
 
         let detune = centsOffFromPitch(pitch, note); // Getting cents range between -50 to +50
 
         if (detune == 0)
         {
-            console.log('[-] Error: Can not detect the detune');
+            console.log('[++] TUNED @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@');
+            DialMoveByDegree(detune * 1.8); 
         }
         else 
         {
             //// TODO: categorizing the Flat and Sharp 
+            //// 1.8 is coming from if 50cents scale. Our transform range is at 90 units scale. 
+            //// If you scale down 90 to 50 scales interval, we have to do 90/50=1.8
             if (detune < 0)
             {
-               console.log("flat"); // Flat
+            //    console.log("[-] flat"); // Flat
+               detune += 3; 
+               DialMoveByDegree(((detune) * 1.8) ); // To get negative value
+               
             }
             else 
             {
-               console.log("sharp"); // sharp
+            //    console.log("[+] sharp"); // sharp
+               detune -= 3; 
+
+               DialMoveByDegree(((detune) * 1.8) ); // To get negative value
+
+            //    DialMoveByDegree(((detune) * 1.8 * -1) ); // To get negative value
+
             }
 
             let centsVal = Math.abs(detune); 
@@ -177,20 +218,35 @@ function updatePitch()
 
 
         
-    }// end if 
-    console.log("====================================================================\n");
-
-
-    //// This is loading - "updatePitch()" forever. 
-    if ( ! window.requestAnimationFrame)
+    }
+    else 
     {
-        window.requestAnimationFrame = window.webkitRequestAnimationFrame; 
+        console.log('[-] Error: Can not detect the tune');
+
+        // Resetting UI 
+        DialMoveByDegree(-90); 
+        DisplayNote("--"); 
+
+
     }// end if 
 
-    rafID = window.requestAnimationFrame(updatePitch); 
+    // console.log("====================================================================\n");
+
+    
+    // //// This is loading - "updatePitch()" forever. 
+    // if ( ! window.requestAnimationFrame)
+    // {
+    //     window.requestAnimationFrame = window.webkitRequestAnimationFrame; 
+    // }// end if 
+
+    // rafID = window.requestAnimationFrame(updatePitch); 
 }// end updatePitch()
 
 
+setInterval(() => 
+{
+    updatePitch(); 
+}, 1000/2); 
 
 
 function autoCorrelate(buf, sampleRate)
@@ -287,9 +343,26 @@ function frequencyFromNoteNumber(note)
     return 440 * Math.pow(2, (note - 69) / 12); 
 }// end frequencyFromNoteNumber()
 
+//// 
+//// Not getting the cents values between -50 and +50 yet. 
+//// 
+//// 
 function centsOffFromPitch(frequency, note)
 {
     return Math.floor(1200 * Math.log(frequency / frequencyFromNoteNumber(note)) / Math.log(2)); 
+}
+
+
+function DialMoveByDegree(degree)
+{
+    dial.style.transform = `rotate(${degree}deg)`; 
+    // dial.style.transitionDelay = `0.0375s`; 
+
+}// end DialMoveByDegree()
+
+function DisplayNote(noteVal)
+{
+    noteValue.innerHTML = noteVal; // Displaying Note on UI
 }
 
 

@@ -101,9 +101,14 @@
     transform-origin: bottom center;
 
 
-    animation:  
-    MoveDial_90CW 6s linear infinite, 
-    ;
+    //// CSS Animation (Replaced with JS) - Rotating the dial from -90 to +90 of 180 deg. 
+    //// Uncomment to test the UI with CSS only. 
+    //// It has been tested and working. 
+    
+    // animation: MoveDial_90CW 6s linear infinite;
+    transform: rotate(-90deg); // Starting from left side. Without it will start form the 90deg position. 
+    transition-delay: 0.10s;
+
 }
 
 .Tune
@@ -117,6 +122,12 @@
     justify-content: center;
     align-items: center;
 }
+
+// .Tune h3 
+// {
+//     transition-delay: 0.15s;
+
+// }
 
 .circle.active
 {
@@ -142,7 +153,7 @@
     color: rgba(0, 0, 0, 0.8);
 }
 
-
+//// Animation - Rotating the dial from -90 to +90 of 180 deg 
 @keyframes MoveDial_90CW 
 {
     0%, 100%
