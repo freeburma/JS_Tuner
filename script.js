@@ -2,38 +2,23 @@
 console.log('JS Loaded ...');
 window.AudioContext = window.AudioContext || window.webkitAudioContext; 
 
-/// Declaring Variables for UI
-let dial, noteValue = null; 
+//// Declaring Variables for UI
+let dial, noteValue, circle, Tune, natural, flat, sharp = null; 
 let lastNoteValue = null; 
 
 
-/// Declaring Variables for Audio Context 
-
+//// Declaring Variables for Audio Context 
 let audioContext = null; 
-let isPlaying = false; 
-let sourceNode = null; 
 let analyser = null; 
-let theBuffer = null; 
-let DEBUGCANVAS = null; 
 let mediaStreamSource = null; 
 
 let MAX_SIZE = 0; 
 
-let detectorElem, 
-    canvasElem, 
-    waveCanvas, 
-    pitchElem, 
-    noteElem, 
-    detuneElem, 
-    detuneAmount; 
-
-let compressor, filter = null; 
-
-
 let rafID = null; 
-let tracks = null; 
 let buflen = 2048; 
-let buf = new Float32Array(buflen);  
+let buf = new Float32Array(buflen);
+
+
 
 // \u266f: Unicode Char for Sharp sign 
 // \u266D: Unicode Char for Flat sign
@@ -43,6 +28,8 @@ let noteStrings = ["C", "C\u266f", "D", "E\u266D", "E", "F", "F\u266f", "G", "G\
 window.onload = function() 
 {
     audioContext = new AudioContext(); 
+    analyser = audioContext.createAnalyser(); 
+
     dial = document.querySelector('.dial'); 
     noteValue = document.querySelector('.NoteValue'); 
 
@@ -109,29 +96,14 @@ function getUserMedia(dictionary, callback)
 
 function goStream(stream) 
 {
-   
-
-    filter = audioContext.createBiquadFilter();
-    filter.Q.value = 8.30;
-    filter.frequency.value = 440;
-    filter.gain.value = 3.0;
-    filter.type = filter.LOWPASS;
-    filter.frequency.value = 0;
-
-    // filter.connect(compressor);
 
     //// Create an AudioNode from the stream 
     mediaStreamSource = audioContext.createMediaStreamSource(stream); 
 
     //// Connect it to the destination 
-    analyser = audioContext.createAnalyser(); 
     analyser.fftSize = 2048; 
 
-    // analyser.connect(filter); // For noise cancellation
-    // filter.connect(analyser); 
     mediaStreamSource.connect(analyser); 
-    // analyser.connect(filter); 
-    // mediaStreamSource.connect(filter); 
 
     console.log(analyser);
 
@@ -141,7 +113,6 @@ function goStream(stream)
 }// end goStream()
 
 
-let isPause = false; 
 
 
 function updatePitch()
@@ -186,36 +157,40 @@ function updatePitch()
         if (detune == 0)
         {
             console.log('[++] TUNED @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@');
-            DialMoveByDegree(detune * 1.8); 
+            // DialMoveByDegree(detune * 1.8); 
         }
         else 
         {
             //// TODO: categorizing the Flat and Sharp 
             //// 1.8 is coming from if 50cents scale. Our transform range is at 90 units scale. 
             //// If you scale down 90 to 50 scales interval, we have to do 90/50=1.8
+            //// 
+            //// Accuracy is between +/- 3 cents with low value mic. 
+            //// The distance and loudness are matter when you tune your instrument. 
+            ////
+
             if (detune < 0)
             {
             //    console.log("[-] flat"); // Flat
                detune += 3; 
-               DialMoveByDegree(((detune) * 1.8) ); // To get negative value
                
             }
             else 
             {
             //    console.log("[+] sharp"); // sharp
-               detune -= 3; 
+                detune -= 3; 
 
-               DialMoveByDegree(((detune) * 1.8) ); // To get negative value
+            }// end if 
 
-            //    DialMoveByDegree(((detune) * 1.8 * -1) ); // To get negative value
 
-            }
-
-            let centsVal = Math.abs(detune); 
-            console.log("[centsVal]", centsVal);
+            console.log("[centsVal]", detune);
 
         }// end if -> detune
 
+
+        DialMoveByDegree(((detune) * 1.8) ); // To get negative value
+
+        SetGreenColorForTune(detune, isMove=true);        // Setting color to GREEN for Tune or near Tune
 
         
     }
@@ -228,7 +203,11 @@ function updatePitch()
         DisplayNote("--"); 
 
 
+        SetGreenColorForTune(-90, isMove=false);
+
+
     }// end if 
+
 
     // console.log("====================================================================\n");
 
@@ -364,5 +343,66 @@ function DisplayNote(noteVal)
 {
     noteValue.innerHTML = noteVal; // Displaying Note on UI
 }
+
+/*
+    if
+*/
+function SetGreenColorForTune(detune, isMove=false)
+{
+    circle = document.querySelector('.circle'); 
+    dial = document.querySelector('.dial'); 
+    Tune = document.querySelector('.Tune'); 
+    natural = document.querySelector('.natural'); 
+
+    flat = document.querySelector('.flat'); 
+    sharp = document.querySelector('.sharp'); 
+
+
+    //// Resetting the background colors 
+    //// Showing the red background on FLat or Sharp
+    if (detune >= 0 && detune <= 3)
+    {
+        circle.classList.add('active'); 
+        dial.classList.add('active'); 
+        Tune.classList.add('active'); 
+        natural.classList.add('active'); 
+    
+        flat.classList.remove('active'); 
+        sharp.classList.remove('active'); 
+    }
+    else 
+    {
+        circle.classList.remove('active'); 
+        dial.classList.remove('active'); 
+        Tune.classList.remove('active'); 
+        natural.classList.remove('active'); 
+
+        if (detune < 0)
+        {
+            flat.classList.add('active'); 
+            sharp.classList.remove('active'); 
+        }
+        else
+        {
+            flat.classList.remove('active'); 
+            sharp.classList.add('active'); 
+        }// end if 
+
+        if ( isMove == false ) // Removing the flat and sharp background if dial is not moving
+        {
+            flat.classList.remove('active'); 
+            sharp.classList.remove('active'); 
+
+            console.log('[@@@@] UI => isMove', isMove);
+
+        }// end if 
+        
+
+        
+
+    }// end if 
+
+    
+}// end SetGreenColorForTune()
 
 
