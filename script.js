@@ -117,9 +117,6 @@ function goStream(stream)
 
 function updatePitch()
 {
-    // let cycles = new Array; 
-    let getFloatTimeDomainData = analyser.getFloatTimeDomainData(buf); 
-    
     
     console.log("====================================================================");
 
@@ -154,10 +151,9 @@ function updatePitch()
 
         let detune = centsOffFromPitch(pitch, note); // Getting cents range between -50 to +50
 
-        if (detune == 0)
+        if (detune == 0) // Left this one to be easier for the newbies 
         {
             console.log('[++] TUNED @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@');
-            // DialMoveByDegree(detune * 1.8); 
         }
         else 
         {
@@ -183,7 +179,7 @@ function updatePitch()
             }// end if 
 
 
-            console.log("[centsVal]", detune);
+            // console.log("[centsVal]", detune);
 
         }// end if -> detune
 
@@ -393,12 +389,7 @@ function SetGreenColorForTune(detune, isMove=false)
             flat.classList.remove('active'); 
             sharp.classList.remove('active'); 
 
-            console.log('[@@@@] UI => isMove', isMove);
-
         }// end if 
-        
-
-        
 
     }// end if 
 
