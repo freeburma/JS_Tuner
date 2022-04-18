@@ -119,15 +119,15 @@ function updatePitch()
 {
     
     console.log("====================================================================");
+    let getFloatTimeDomainData = analyser.getFloatTimeDomainData(buf); // Getting the audio data and store it in Buf Array
 
+    let ac = autoCorrelate(buf, audioContext.sampleRate);              // Converting audio data to Hz
+    ac = ac.toFixed(2);                                                // Rounding to 2 Decimal Places to reduce UI Exhaust
 
-    let ac = autoCorrelate(buf, audioContext.sampleRate);
-    ac = ac.toFixed(2); 
+    // console.log("[ac]", ac);
 
-    console.log("[ac]", ac);
-
-    //// ac: is accuracy 
-    // if (ac != -1) // Can't detect the tune
+    //// Detecting the tune. "ac": is accuracy 
+    // if (ac != -1) // Detect the tune
     if ( ac >= 123.47 && ac <= 3951.07) // Our tuner start to detect from C3 and C8 interval to reduce noise. 
     {
       
@@ -165,13 +165,13 @@ function updatePitch()
             //// The distance and loudness are matter when you tune your instrument. 
             ////
 
-            if (detune < 0)
+            if (detune < 0) // Flat
             {
             //    console.log("[-] flat"); // Flat
                detune += 3; 
                
             }
-            else 
+            else            // Sharp
             {
             //    console.log("[+] sharp"); // sharp
                 detune -= 3; 
@@ -184,13 +184,13 @@ function updatePitch()
         }// end if -> detune
 
 
-        DialMoveByDegree(((detune) * 1.8) ); // To get negative value
+        DialMoveByDegree(((detune) * 1.8) );        // Moving the dial according to Cent value
 
-        SetGreenColorForTune(detune, isMove=true);        // Setting color to GREEN for Tune or near Tune
+        SetGreenColorForTune(detune, isMove=true);  // Setting color to GREEN for Tune or near Tune
 
         
     }
-    else 
+    else  // No tune or Tune is below C3 interval
     {
         console.log('[-] Error: Can not detect the tune');
 
@@ -218,6 +218,7 @@ function updatePitch()
 }// end updatePitch()
 
 
+//// Looking for new Audio data in every 500ms. 
 setInterval(() => 
 {
     updatePitch(); 
@@ -305,6 +306,10 @@ function autoCorrelate(buf, sampleRate)
 
 }// end autoCorrelate()
 
+/*
+    noteFromPitch() 
+    Converts the frequency to note values. 
+*/
 function noteFromPitch(frequency) // Have seen this on "WebAduio Course on FutureLearn"
 {
     let noteNum = 12 * (Math.log(frequency / 440) / Math.log(2)); 
@@ -312,22 +317,28 @@ function noteFromPitch(frequency) // Have seen this on "WebAduio Course on Futur
     return Math.round(noteNum) + 69; 
 }// end noteFromPitch()
 
-
+/*
+    frequencyFromNoteNumber() 
+    Calculates the Frequency(Hz) to Note Numbers - Standard is 440Hz
+*/
 function frequencyFromNoteNumber(note)
 {
     return 440 * Math.pow(2, (note - 69) / 12); 
 }// end frequencyFromNoteNumber()
 
-//// 
-//// Not getting the cents values between -50 and +50 yet. 
-//// 
-//// 
+/*
+    centsOffFromPitch()
+    Calculates the cents from frequency (Hz) and getting the cents values between -50 and +50 yet. 
+*/
 function centsOffFromPitch(frequency, note)
 {
     return Math.floor(1200 * Math.log(frequency / frequencyFromNoteNumber(note)) / Math.log(2)); 
 }
 
-
+/*
+    DialMoveByDegree() 
+    Move the Dial(meter) according to degree on UI
+*/
 function DialMoveByDegree(degree)
 {
     dial.style.transform = `rotate(${degree}deg)`; 
@@ -335,13 +346,19 @@ function DialMoveByDegree(degree)
 
 }// end DialMoveByDegree()
 
+/*
+    DisplayNote(): Displaying notes on UI
+*/
 function DisplayNote(noteVal)
 {
     noteValue.innerHTML = noteVal; // Displaying Note on UI
 }
 
 /*
-    if
+    SetGreenColorForTune(): will change the background color according to cent value. 
+    Green: Tune 
+    Sharp/Flat: Red (Under/Over from Standard Tune)
+
 */
 function SetGreenColorForTune(detune, isMove=false)
 {
