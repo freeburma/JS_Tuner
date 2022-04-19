@@ -183,11 +183,14 @@ function updatePitch()
         let singleNoteValue = noteStrings[note % 12]; // Getting all 12 nodes from the array
 
         //// Update only when we receive only new node value 
-        if (lastNoteValue !== singleNoteValue)
-        {
-            DisplayNote(singleNoteValue); 
-            lastNoteValue = singleNoteValue; 
-        }
+        // if (lastNoteValue != singleNoteValue)
+        // {
+        //     DisplayNote(singleNoteValue); 
+        //     lastNoteValue = singleNoteValue; 
+        // }// end if
+
+        DisplayNote(singleNoteValue); 
+
 
         // console.log("[Note] : ", singleNoteValue, " => ", lastNoteValue);
 
