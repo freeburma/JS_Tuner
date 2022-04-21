@@ -29,6 +29,8 @@ You may use Gulp and TypeScript configuration to your project.
 
 Ref Sites: 
 "Pitch Detect" Source Code: https://github.com/cwilso/PitchDetect
+<br/>
 Physics of Music Notes: https://pages.mtu.edu/~suits/Physicsofmusic.html
-
+<br/>
+Code examples that accompany the MDN Web Audio documentation https://developer.mozilla.org/en-US/docs/Web/API/Web_Audio_API
 
