@@ -22,7 +22,6 @@ You may use Gulp and TypeScript configuration to your project.
 <ol>
 <li>$ npm install </li>
 <li>$ gulp</li>
-<li></li>
 </ol>
 
 ## YouTube Video Demo: https://youtu.be/QUrcBLPKKTM
