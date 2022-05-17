@@ -1,3 +1,8 @@
 node_modules
+<<<<<<< HEAD
 webaudio-examples
 PitchDetect
+=======
+PitchDetect
+webaudio-examples
+>>>>>>> 01-UI
