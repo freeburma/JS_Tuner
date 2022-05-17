@@ -58,6 +58,7 @@ let MAX_SIZE = 0;
 let rafID = null; 
 let buflen = 2048; 
 let buf = new Float32Array(buflen);
+let isMove = false; 
 
 
 
@@ -237,7 +238,7 @@ function updatePitch()
     }
     else  // No tune or Tune is below C3 interval
     {
-        console.log('[-] Error: Can not detect the tune');
+        // console.log('[-] Error: Can not detect the tune');
 
         // Resetting UI 
         DialMoveByDegree(-90); 
