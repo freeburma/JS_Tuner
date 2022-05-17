@@ -2,7 +2,7 @@
 
 ![plot](./screenshot.png)
 
-This is a Chromatic Tuning Machine which will detect all your musical notes between A2-A7 ranges. We use 440Hz frequency which is a gold standard frequency to tune any instrument. 
+This is a Chromatic Tuning Machine which will detect all your musical notes between A2-A7 ranges. We use 440Hz frequency which is a gold standard frequency to tune any instruments. 
 
 I don't use any library, however, I got help from "Pitch Detect" by Chris Wilson. He 
 made me to complete this project. Some of the partial codes are directly inherited from 
