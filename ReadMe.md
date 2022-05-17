@@ -1,12 +1,3 @@
-<<<<<<< HEAD
-JavaScript Chromatic Tuner Machine 
-
-
-
-Ref Sites: 
-Physics of Music Notes: https://pages.mtu.edu/~suits/Physicsofmusic.html
-
-=======
 ## JavaScript Chromatic Tuner Machine 
 
 ![plot](./screenshot.png)
@@ -43,5 +34,4 @@ Ref Sites:
 Physics of Music Notes: https://pages.mtu.edu/~suits/Physicsofmusic.html
 <br/>
 Code examples that accompany the MDN Web Audio documentation https://developer.mozilla.org/en-US/docs/Web/API/Web_Audio_API
->>>>>>> 01-UI
 
